@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0d0a09">
+  <meta name="description" content="The Lost Realm player account portal.">
+  <title>Account | The Lost Realm</title>
+  <link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="assets/css/main.css">
+</head>
+<body class="account-page">
+  <canvas id="ember-canvas" aria-hidden="true"></canvas>
+  <div class="site-noise" aria-hidden="true"></div>
+
+  <header class="site-header" id="site-header">
+    <a class="brand" href="index.html" aria-label="The Lost Realm home">
+      <img src="assets/img/crest.svg" alt="">
+      <span>
+        <strong>The Lost Realm</strong>
+        <small>Medieval Fantasy RPG</small>
+      </span>
+    </a>
+
+    <button class="nav-toggle" id="nav-toggle" aria-expanded="false" aria-controls="main-nav">
+      <span></span><span></span><span></span>
+      <span class="sr-only">Toggle navigation</span>
+    </button>
+
+    <nav class="main-nav" id="main-nav">
+      <a href="index.html">Home</a><a href="news.html">News</a><a href="wiki.html">Wiki</a><a href="ranks.html">Ranks</a><a href="store.html">Store</a><a href="leaderboards.html">Leaderboards</a><a href="gallery.html">Gallery</a><a href="staff.html">Staff</a>
+      <a class="account-link" href="account.html">Account</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="page-hero account-hero">
+      <div class="container reveal">
+        <p class="eyebrow">Secure player portal</p>
+        <h1>Your Realm Profile</h1>
+        <p class="lead">Sign in with a one-time email code, manage your account, and connect your Minecraft identity.</p>
+      </div>
+    </section>
+
+    <section class="section" id="account-loading-view">
+      <div class="narrow">
+        <article class="card account-loading-card">
+          <span class="account-spinner" aria-hidden="true"></span>
+          <div><h3>Opening the portal...</h3><p class="muted">Checking your current session.</p></div>
+        </article>
+      </div>
+    </section>
+
+    <section class="section hidden" id="logged-out-view">
+      <div class="container auth-layout">
+        <article class="card auth-card reveal">
+          <p class="eyebrow">Passwordless sign in</p>
+          <h2>Enter the realm.</h2>
+          <p class="lead auth-lead">We will email you a six-digit code. New email addresses automatically create an account after the code is verified.</p>
+
+          <form class="portal-form" id="request-code-form" novalidate>
+            <div class="field">
+              <label for="email">Email address</label>
+              <input id="email" name="email" type="email" autocomplete="email" placeholder="you@example.com" required maxlength="254">
+            </div>
+            <button class="button" id="send-code-button" type="submit">Send One-Time Code</button>
+          </form>
+
+          <form class="portal-form hidden" id="verify-code-form" novalidate>
+            <div class="verification-heading">
+              <div>
+                <p class="eyebrow">Code sent</p>
+                <h3>Check your inbox</h3>
+              </div>
+              <button class="text-button" id="change-email-button" type="button">Change email</button>
+            </div>
+            <p class="muted">Enter the code sent to <strong id="code-email-label"></strong>. It expires in ten minutes.</p>
+            <div class="field">
+              <label for="code">Verification code</label>
+              <input id="code" name="code" class="code-input" type="text" inputmode="numeric" autocomplete="one-time-code" placeholder="000000" minlength="6" maxlength="6" required>
+            </div>
+            <div class="inline-actions">
+              <button class="button" id="verify-code-button" type="submit">Sign In</button>
+              <button class="button-ghost" id="resend-code-button" type="button">Send Another Code</button>
+            </div>
+          </form>
+
+          <p class="form-result" id="auth-result" role="status" aria-live="polite"></p>
+        </article>
+
+        <aside class="auth-side reveal">
+          <article class="card">
+            <div class="card-icon">✦</div>
+            <h3>One account, one identity</h3>
+            <p>Link your Minecraft name and keep your titles, achievements, friends, and statistics together.</p>
+          </article>
+          <article class="card">
+            <div class="card-icon">⌁</div>
+            <h3>No password to remember</h3>
+            <p>Each login uses a short-lived email code. Your persistent session stays on this browser until you log out.</p>
+          </article>
+          <article class="callout">
+            <strong>Secure access:</strong> Sign-in codes are sent only to the email address entered above and expire after a short time.
+          </article>
+        </aside>
+      </div>
+    </section>
+
+    <section class="section hidden" id="logged-in-view">
+      <div class="container account-shell">
+        <aside class="card profile-card reveal">
+          <img class="profile-avatar profile-avatar-image hidden" id="profile-head" alt="Minecraft avatar">
+          <div class="profile-avatar" id="profile-placeholder">?</div>
+          <h3 id="profile-name">Realm Traveler</h3>
+          <span class="role" id="profile-title">Traveler</span>
+          <div class="profile-badges" id="profile-badges"></div>
+          <p class="muted" id="profile-email"></p>
+          <button class="button-ghost button-small" id="logout-button" type="button">Log Out</button>
+        </aside>
+
+        <div>
+          <div class="dashboard-grid">
+            <div class="metric reveal"><strong id="metric-playtime">0h</strong><span>Playtime</span></div>
+            <div class="metric reveal"><strong id="metric-quests">0</strong><span>Quests</span></div>
+            <div class="metric reveal"><strong id="metric-achievements">0</strong><span>Achievements</span></div>
+            <div class="metric reveal"><strong id="metric-friends">0</strong><span>Friends</span></div>
+          </div>
+
+          <article class="card reveal account-panel" id="minecraft-panel">
+            <div class="panel-heading">
+              <div><p class="eyebrow">Minecraft identity</p><h3 id="minecraft-heading">Link your Minecraft account</h3></div>
+              <span class="account-state-pill" id="minecraft-state">Not linked</span>
+            </div>
+            <div id="minecraft-unlinked-content">
+              <p class="muted">Run <strong>/link</strong> in-game to receive a code, then enter it below to connect your Minecraft identity.</p>
+              <form class="portal-form compact-form" id="link-minecraft-form">
+                <div class="field">
+                  <label for="link-code">Minecraft link code</label>
+                  <input id="link-code" type="text" inputmode="numeric" autocomplete="off" placeholder="123456" minlength="6" maxlength="6" required>
+                </div>
+                <button class="button" id="link-minecraft-button" type="submit">Link Account</button>
+              </form>
+            </div>
+            <div class="hidden linked-minecraft" id="minecraft-linked-content">
+              <img id="linked-minecraft-head" alt="Linked Minecraft avatar">
+              <div><strong id="linked-minecraft-name"></strong><p class="muted">Connected to this website account.</p></div>
+            </div>
+            <p class="form-result" id="link-result" role="status" aria-live="polite"></p>
+          </article>
+
+          <article class="card reveal account-panel">
+            <div class="panel-heading">
+              <div><p class="eyebrow">Account information</p><h3>Your portal details</h3></div>
+            </div>
+            <dl class="account-details">
+              <div><dt>Email</dt><dd id="details-email">—</dd></div>
+              <div><dt>Account created</dt><dd id="details-created">—</dd></div>
+              <div><dt>Last sign in</dt><dd id="details-login">—</dd></div>
+              <div><dt>Account ID</dt><dd id="details-id">—</dd></div>
+            </dl>
+          </article>
+
+          <article class="card reveal account-panel privacy-panel">
+            <div class="panel-heading">
+              <div><p class="eyebrow">Privacy & control</p><h3>Manage your information</h3></div>
+            </div>
+            <p class="muted">Request a copy of the information stored for your account, or permanently delete the account.</p>
+            <div class="inline-actions">
+              <button class="button-ghost" id="request-data-button" type="button">Request My Data</button>
+              <button class="danger-button" id="delete-account-button" type="button">Delete Account</button>
+            </div>
+            <p class="form-result" id="privacy-result" role="status" aria-live="polite"></p>
+          </article>
+
+          <section class="hidden admin-console" id="admin-console">
+            <div class="section-head admin-section-head">
+              <div><p class="eyebrow">Website administration</p><h2>Realm Control Panel</h2></div>
+              <span class="account-state-pill">Administrator</span>
+            </div>
+
+            <div class="dashboard-grid admin-summary-grid">
+              <div class="metric"><strong id="admin-total-accounts">0</strong><span>Accounts</span></div>
+              <div class="metric"><strong id="admin-linked-accounts">0</strong><span>Linked Players</span></div>
+            </div>
+
+            <article class="card account-panel admin-panel">
+              <div class="panel-heading">
+                <div><p class="eyebrow">Team management</p><h3>Add or edit staff members</h3></div>
+              </div>
+              <form class="portal-form admin-form" id="admin-staff-form">
+                <input id="staff-id" type="hidden">
+                <div class="admin-form-grid">
+                  <div class="field"><label for="staff-name">Name</label><input id="staff-name" maxlength="64" required></div>
+                  <div class="field"><label for="staff-role">Role</label><input id="staff-role" maxlength="64" required></div>
+                  <div class="field admin-span-2"><label for="staff-description">Description</label><textarea id="staff-description" rows="3" maxlength="500"></textarea></div>
+                  <div class="field"><label for="staff-youtube">YouTube URL</label><input id="staff-youtube" type="url" placeholder="https://www.youtube.com/@..."></div>
+                  <div class="field"><label for="staff-order">Display order</label><input id="staff-order" type="number" value="100"></div>
+                  <div class="field admin-span-2"><label for="staff-icon">Profile icon</label><input id="staff-icon" type="file" accept="image/png,image/jpeg,image/webp"><small class="field-help">Leave empty while editing to keep the current icon.</small></div>
+                  <label class="check-field admin-span-2"><input id="staff-visible" type="checkbox" checked> Show this member on the Staff page</label>
+                </div>
+                <div class="inline-actions">
+                  <button class="button" type="submit" id="save-staff-button">Save Staff Member</button>
+                  <button class="button-ghost hidden" type="button" id="cancel-staff-edit">Cancel Edit</button>
+                </div>
+                <p class="form-result" id="staff-admin-result" role="status" aria-live="polite"></p>
+              </form>
+              <div class="admin-list" id="admin-staff-list"></div>
+            </article>
+
+            <article class="card account-panel admin-panel">
+              <div class="panel-heading">
+                <div><p class="eyebrow">Website images</p><h3>Replace placeholder artwork</h3></div>
+              </div>
+              <p class="muted">Upload the final server screenshots whenever they are ready. Resetting a slot restores the built-in artwork.</p>
+              <div class="media-manager" id="admin-image-list"></div>
+              <p class="form-result" id="image-admin-result" role="status" aria-live="polite"></p>
+            </article>
+          </section>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div>
+      <img src="assets/img/crest.svg" alt="">
+      <div><strong>The Lost Realm</strong><p>A kingdom lost to time. A story waiting for players.</p></div>
+    </div>
+    <nav aria-label="Footer"><a href="index.html">Home</a><a href="news.html">News</a><a href="staff.html">Staff</a><a href="account.html">Account</a></nav>
+    <p class="copyright">© <span id="year"></span> The Lost Realm. Not affiliated with Mojang Studios.</p>
+  </footer>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="assets/js/config.js"></script>
+  <script src="assets/js/app.js"></script>
+  <script src="assets/js/account.js"></script>
+</body>
+</html>
