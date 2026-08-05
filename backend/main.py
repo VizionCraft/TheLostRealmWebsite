@@ -34,7 +34,7 @@ DB_PATH = Path(DB_PATH_VALUE)
 if not DB_PATH.is_absolute():
     DB_PATH = BASE_DIR / DB_PATH
 
-DEMO_MODE = os.getenv("DEMO_MODE", "true").lower() == "true"
+DEMO_MODE = os.getenv("DEMO_MODE", "false").lower() == "true"
 SESSION_DAYS = max(1, int(os.getenv("SESSION_DAYS", "30")))
 CODE_MINUTES = max(2, int(os.getenv("CODE_MINUTES", "10")))
 LINK_CODE_MINUTES = max(2, int(os.getenv("LINK_CODE_MINUTES", "15")))
@@ -82,6 +82,21 @@ app.add_middleware(
 bearer = HTTPBearer(auto_error=False)
 EMAIL_RE = re.compile(r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
 MINECRAFT_NAME_RE = re.compile(r"^[A-Za-z0-9_]{3,16}$")
+HTTPS_URL_RE = re.compile(r"^https://[^\s]+$")
+DATA_IMAGE_RE = re.compile(r"^data:image/(?:png|jpeg|webp);base64,[A-Za-z0-9+/=]+$")
+MAX_IMAGE_DATA_LENGTH = 6_000_000
+
+SITE_IMAGE_SLOTS: dict[str, str] = {
+    "home_hero": "Home page hero",
+    "home_lore": "Home page lore artwork",
+    "region_hearthvale": "Region card — Hearthvale",
+    "region_blackwood": "Region card — The Blackwood",
+    "region_silent_gate": "Region card — The Silent Gate",
+    "gallery_citadel": "Gallery — The Lost Citadel",
+    "gallery_blackwood": "Gallery — The Blackwood",
+    "gallery_hearthvale": "Gallery — Hearthvale",
+    "gallery_silent_gate": "Gallery — The Silent Gate",
+}
 
 
 class EmailRequest(BaseModel):
@@ -142,6 +157,51 @@ class DevLinkCodeRequest(BaseModel):
         if not MINECRAFT_NAME_RE.fullmatch(value):
             raise ValueError("Minecraft names may contain letters, numbers, and underscores.")
         return value
+
+
+class StaffMemberRequest(BaseModel):
+    name: str = Field(min_length=1, max_length=64)
+    role: str = Field(min_length=1, max_length=64)
+    description: str = Field(default="", max_length=500)
+    youtube_url: str = Field(default="", max_length=500)
+    icon_url: str = Field(default="", max_length=MAX_IMAGE_DATA_LENGTH)
+    sort_order: int = Field(default=100, ge=-10_000, le=10_000)
+    visible: bool = True
+
+    @field_validator("name", "role", "description")
+    @classmethod
+    def trim_text(cls, value: str) -> str:
+        return value.strip()
+
+    @field_validator("youtube_url")
+    @classmethod
+    def validate_youtube_url(cls, value: str) -> str:
+        cleaned = value.strip()
+        if cleaned and not HTTPS_URL_RE.fullmatch(cleaned):
+            raise ValueError("YouTube URL must begin with https://")
+        return cleaned
+
+    @field_validator("icon_url")
+    @classmethod
+    def validate_icon_url(cls, value: str) -> str:
+        cleaned = value.strip()
+        if not cleaned:
+            return ""
+        if cleaned.startswith("assets/img/") or HTTPS_URL_RE.fullmatch(cleaned) or DATA_IMAGE_RE.fullmatch(cleaned):
+            return cleaned
+        raise ValueError("Icon must be a website image path, HTTPS URL, or uploaded PNG/JPEG/WebP image.")
+
+
+class SiteImageRequest(BaseModel):
+    image_url: str = Field(min_length=1, max_length=MAX_IMAGE_DATA_LENGTH)
+
+    @field_validator("image_url")
+    @classmethod
+    def validate_image_url(cls, value: str) -> str:
+        cleaned = value.strip()
+        if cleaned.startswith("assets/img/") or HTTPS_URL_RE.fullmatch(cleaned) or DATA_IMAGE_RE.fullmatch(cleaned):
+            return cleaned
+        raise ValueError("Image must be a website image path, HTTPS URL, or uploaded PNG/JPEG/WebP image.")
 
 
 @contextmanager
@@ -243,8 +303,76 @@ def init_db() -> None:
 
             CREATE INDEX IF NOT EXISTS idx_link_codes_created
             ON link_codes(created_at DESC);
+
+            CREATE TABLE IF NOT EXISTS staff_members (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                role TEXT NOT NULL,
+                description TEXT NOT NULL DEFAULT '',
+                youtube_url TEXT NOT NULL DEFAULT '',
+                icon_url TEXT NOT NULL DEFAULT '',
+                sort_order INTEGER NOT NULL DEFAULT 100,
+                visible INTEGER NOT NULL DEFAULT 1,
+                created_at INTEGER NOT NULL,
+                updated_at INTEGER NOT NULL
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_staff_display
+            ON staff_members(visible DESC, sort_order ASC, id ASC);
+
+            CREATE TABLE IF NOT EXISTS site_images (
+                slot TEXT PRIMARY KEY,
+                image_url TEXT NOT NULL,
+                updated_at INTEGER NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS site_meta (
+                key TEXT PRIMARY KEY,
+                value TEXT NOT NULL
+            );
             """
         )
+
+        seed_marker = connection.execute(
+            "SELECT value FROM site_meta WHERE key = 'default_staff_seeded'"
+        ).fetchone()
+        if not seed_marker:
+            existing_staff = connection.execute("SELECT COUNT(*) AS total FROM staff_members").fetchone()["total"]
+            if int(existing_staff) == 0:
+                timestamp = now_ts()
+                connection.executemany(
+                    """
+                    INSERT INTO staff_members(
+                        name, role, description, youtube_url, icon_url,
+                        sort_order, visible, created_at, updated_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?)
+                    """,
+                    [
+                        (
+                            "VizionCraft",
+                            "Owner",
+                            "Project direction, world vision, systems, and community.",
+                            "https://www.youtube.com/@VizionCraft1",
+                            "assets/img/staff-vizioncraft.jpg",
+                            10,
+                            timestamp,
+                            timestamp,
+                        ),
+                        (
+                            "Nooby_2",
+                            "Head Builder",
+                            "Leads the creation of regions, structures, interiors, and visual storytelling.",
+                            "https://www.youtube.com/@Lord_Nooby2",
+                            "assets/img/staff-nooby-2.jpg",
+                            20,
+                            timestamp,
+                            timestamp,
+                        ),
+                    ],
+                )
+            connection.execute(
+                "INSERT OR REPLACE INTO site_meta(key, value) VALUES ('default_staff_seeded', '1')"
+            )
 
 
 @app.on_event("startup")
@@ -326,6 +454,28 @@ def row_to_user(row: sqlite3.Row) -> dict[str, Any]:
         "playtime_rank": row["playtime_rank"],
         "display_title": row["display_title"],
     }
+
+
+def row_to_staff(row: sqlite3.Row) -> dict[str, Any]:
+    return {
+        "id": int(row["id"]),
+        "name": row["name"],
+        "role": row["role"],
+        "description": row["description"],
+        "youtube_url": row["youtube_url"],
+        "icon_url": row["icon_url"],
+        "sort_order": int(row["sort_order"]),
+        "visible": bool(row["visible"]),
+        "created_at": iso_time(row["created_at"]),
+        "updated_at": iso_time(row["updated_at"]),
+    }
+
+
+def require_image_slot(slot: str) -> str:
+    cleaned = slot.strip()
+    if cleaned not in SITE_IMAGE_SLOTS:
+        raise HTTPException(status_code=404, detail="Unknown website image slot.")
+    return cleaned
 
 
 def current_user(
@@ -628,6 +778,172 @@ def admin_summary(admin: sqlite3.Row = Depends(require_admin)) -> dict[str, Any]
     }
 
 
+@app.get("/api/site-content")
+def site_content() -> dict[str, Any]:
+    with db() as connection:
+        staff_rows = connection.execute(
+            """
+            SELECT * FROM staff_members
+            WHERE visible = 1
+            ORDER BY sort_order ASC, id ASC
+            """
+        ).fetchall()
+        image_rows = connection.execute(
+            "SELECT slot, image_url FROM site_images ORDER BY slot"
+        ).fetchall()
+    return {
+        "staff": [row_to_staff(row) for row in staff_rows],
+        "images": {row["slot"]: row["image_url"] for row in image_rows},
+    }
+
+
+@app.get("/api/admin/staff")
+def admin_staff_list(admin: sqlite3.Row = Depends(require_admin)) -> dict[str, Any]:
+    del admin
+    with db() as connection:
+        rows = connection.execute(
+            "SELECT * FROM staff_members ORDER BY sort_order ASC, id ASC"
+        ).fetchall()
+    return {"staff": [row_to_staff(row) for row in rows]}
+
+
+@app.post("/api/admin/staff", status_code=status.HTTP_201_CREATED)
+def admin_staff_create(
+    payload: StaffMemberRequest,
+    admin: sqlite3.Row = Depends(require_admin),
+) -> dict[str, Any]:
+    del admin
+    timestamp = now_ts()
+    with db() as connection:
+        cursor = connection.execute(
+            """
+            INSERT INTO staff_members(
+                name, role, description, youtube_url, icon_url,
+                sort_order, visible, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                payload.name,
+                payload.role,
+                payload.description,
+                payload.youtube_url,
+                payload.icon_url,
+                payload.sort_order,
+                int(payload.visible),
+                timestamp,
+                timestamp,
+            ),
+        )
+        row = connection.execute(
+            "SELECT * FROM staff_members WHERE id = ?", (cursor.lastrowid,)
+        ).fetchone()
+    return {"message": "Staff member added.", "staff_member": row_to_staff(row)}
+
+
+@app.put("/api/admin/staff/{staff_id}")
+def admin_staff_update(
+    staff_id: int,
+    payload: StaffMemberRequest,
+    admin: sqlite3.Row = Depends(require_admin),
+) -> dict[str, Any]:
+    del admin
+    timestamp = now_ts()
+    with db() as connection:
+        existing = connection.execute(
+            "SELECT id FROM staff_members WHERE id = ?", (staff_id,)
+        ).fetchone()
+        if not existing:
+            raise HTTPException(status_code=404, detail="Staff member not found.")
+        connection.execute(
+            """
+            UPDATE staff_members
+            SET name = ?, role = ?, description = ?, youtube_url = ?,
+                icon_url = ?, sort_order = ?, visible = ?, updated_at = ?
+            WHERE id = ?
+            """,
+            (
+                payload.name,
+                payload.role,
+                payload.description,
+                payload.youtube_url,
+                payload.icon_url,
+                payload.sort_order,
+                int(payload.visible),
+                timestamp,
+                staff_id,
+            ),
+        )
+        row = connection.execute(
+            "SELECT * FROM staff_members WHERE id = ?", (staff_id,)
+        ).fetchone()
+    return {"message": "Staff member updated.", "staff_member": row_to_staff(row)}
+
+
+@app.delete("/api/admin/staff/{staff_id}")
+def admin_staff_delete(
+    staff_id: int,
+    admin: sqlite3.Row = Depends(require_admin),
+) -> dict[str, str]:
+    del admin
+    with db() as connection:
+        cursor = connection.execute("DELETE FROM staff_members WHERE id = ?", (staff_id,))
+        if cursor.rowcount == 0:
+            raise HTTPException(status_code=404, detail="Staff member not found.")
+    return {"message": "Staff member removed."}
+
+
+@app.get("/api/admin/site-images")
+def admin_site_images(admin: sqlite3.Row = Depends(require_admin)) -> dict[str, Any]:
+    del admin
+    with db() as connection:
+        rows = connection.execute("SELECT slot, image_url, updated_at FROM site_images").fetchall()
+    custom = {row["slot"]: row for row in rows}
+    return {
+        "images": [
+            {
+                "slot": slot,
+                "label": label,
+                "image_url": custom[slot]["image_url"] if slot in custom else "",
+                "updated_at": iso_time(custom[slot]["updated_at"]) if slot in custom else None,
+            }
+            for slot, label in SITE_IMAGE_SLOTS.items()
+        ]
+    }
+
+
+@app.put("/api/admin/site-images/{slot}")
+def admin_site_image_update(
+    slot: str,
+    payload: SiteImageRequest,
+    admin: sqlite3.Row = Depends(require_admin),
+) -> dict[str, str]:
+    del admin
+    valid_slot = require_image_slot(slot)
+    with db() as connection:
+        connection.execute(
+            """
+            INSERT INTO site_images(slot, image_url, updated_at) VALUES (?, ?, ?)
+            ON CONFLICT(slot) DO UPDATE SET
+                image_url = excluded.image_url,
+                updated_at = excluded.updated_at
+            """,
+            (valid_slot, payload.image_url, now_ts()),
+        )
+    return {"message": f"{SITE_IMAGE_SLOTS[valid_slot]} updated."}
+
+
+@app.delete("/api/admin/site-images/{slot}")
+def admin_site_image_reset(
+    slot: str,
+    admin: sqlite3.Row = Depends(require_admin),
+) -> dict[str, str]:
+    del admin
+    valid_slot = require_image_slot(slot)
+    with db() as connection:
+        connection.execute("DELETE FROM site_images WHERE slot = ?", (valid_slot,))
+    return {"message": f"{SITE_IMAGE_SLOTS[valid_slot]} reset to the built-in artwork."}
+
+
 @app.get("/api/status")
 def minecraft_status() -> dict[str, Any]:
     try:
@@ -665,8 +981,8 @@ def minecraft_status() -> dict[str, Any]:
 def news() -> dict[str, list[dict[str, Any]]]:
     return {
         "news": [
-            {"id": 1, "headline": "The Lost Realm begins", "category": "Development Log", "summary": "The new website foundation is online."},
-            {"id": 2, "headline": "Designing Hearthvale", "category": "Worldbuilding", "summary": "Planning the first village and tutorial area."},
+            {"id": 1, "headline": "The gates of the realm", "category": "Realm News", "summary": "The roads beyond Hearthvale are open to new adventurers."},
+            {"id": 2, "headline": "Welcome to Hearthvale", "category": "World Chronicle", "summary": "Meet the village that stands at the edge of the forgotten road."},
         ]
     }
 
