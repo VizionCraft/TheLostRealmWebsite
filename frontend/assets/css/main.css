@@ -554,3 +554,4 @@ h3 { font-size: 1.45rem; }
   .admin-span-2 { grid-column: auto; }
   .media-preview { width: 80px; }
 }
+.staff-empty { grid-column: 1 / -1; text-align: center; padding: 28px; }
