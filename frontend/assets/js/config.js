@@ -5,6 +5,6 @@ window.TLR_CONFIG = {
   API_BASE_URL: "https://the-lost-realm-api.inventorguy8.workers.dev/",
 
   SERVER_IP: "play.thelostrealm.org",
-  DISCORD_INVITE: "https://discord.gg/BAHjdnYkE5",
+  DISCORD_INVITE: "https://discord.gg/2XGXw7npXa",
   DEMO_MODE: false
 };
