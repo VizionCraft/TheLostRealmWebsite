@@ -555,3 +555,25 @@ h3 { font-size: 1.45rem; }
   .media-preview { width: 80px; }
 }
 .staff-empty { grid-column: 1 / -1; text-align: center; padding: 28px; }
+
+/* Account email-change flow */
+.account-detail-action { margin-top: 8px; }
+.portal-modal { position: fixed; inset: 0; z-index: 1200; display: grid; place-items: center; padding: 24px; }
+.portal-modal.hidden { display: none; }
+.portal-modal-backdrop { position: absolute; inset: 0; background: rgba(5, 4, 3, .82); backdrop-filter: blur(6px); }
+.portal-modal-card { position: relative; z-index: 1; width: min(620px, 100%); max-height: min(760px, calc(100vh - 48px)); overflow: auto; padding: 28px; box-shadow: 0 24px 80px rgba(0, 0, 0, .5); }
+.portal-modal-close { position: absolute; top: 14px; right: 16px; width: 38px; height: 38px; border-radius: 999px; border: 1px solid var(--line); background: rgba(255,255,255,.03); color: var(--text); font-size: 1.4rem; cursor: pointer; }
+.portal-modal-close:hover { border-color: rgba(226,184,105,.55); background: rgba(226,184,105,.08); }
+.email-change-summary { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 14px; margin: 22px 0; }
+.email-change-summary > div:not(.email-change-arrow) { min-width: 0; padding: 16px; border: 1px solid var(--line); border-radius: 14px; background: rgba(255,255,255,.015); }
+.email-change-summary span { display: block; color: var(--muted); font-size: .76rem; text-transform: uppercase; letter-spacing: .11em; }
+.email-change-summary strong { display: block; margin-top: 6px; overflow-wrap: anywhere; }
+.email-change-arrow { color: var(--gold); font-size: 1.5rem; font-weight: 900; }
+.email-change-warning { margin: 18px 0; }
+body.portal-modal-open { overflow: hidden; }
+@media (max-width: 640px) {
+  .portal-modal { padding: 14px; }
+  .portal-modal-card { padding: 24px 18px; }
+  .email-change-summary { grid-template-columns: 1fr; }
+  .email-change-arrow { transform: rotate(90deg); justify-self: center; }
+}
