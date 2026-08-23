@@ -1,6 +1,0 @@
-/*
-  X-Content-Type-Options: nosniff
-  Referrer-Policy: strict-origin-when-cross-origin
-  Permissions-Policy: camera=(), microphone=(), geolocation=()
-  X-Frame-Options: SAMEORIGIN
-  Content-Security-Policy: default-src 'self'; img-src 'self' data: https://mc-heads.net; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self' http://127.0.0.1:8000 http://localhost:8000 https://api.thelostrealm.org https://the-lost-realm-api.inventorguy8.workers.dev https://*.trycloudflare.com;
