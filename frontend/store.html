@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0d0a09">
+  <meta name="description" content="The Lost Realm — a handcrafted medieval fantasy Minecraft RPG.">
+  <title>Store | The Lost Realm</title>
+  <link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="assets/css/main.css">
+</head>
+<body class="">
+  <canvas id="ember-canvas" aria-hidden="true"></canvas>
+  <div class="site-noise" aria-hidden="true"></div>
+
+  <header class="site-header" id="site-header">
+    <a class="brand" href="index.html" aria-label="The Lost Realm home">
+      <img src="assets/img/crest.svg" alt="">
+      <span>
+        <strong>The Lost Realm</strong>
+        <small>Medieval Fantasy RPG</small>
+      </span>
+    </a>
+
+    <button class="nav-toggle" id="nav-toggle" aria-expanded="false" aria-controls="main-nav">
+      <span></span><span></span><span></span>
+      <span class="sr-only">Toggle navigation</span>
+    </button>
+
+    <nav class="main-nav" id="main-nav">
+      <a href="index.html">Home</a><a href="news.html">News</a><a href="wiki.html">Wiki</a><a href="ranks.html">Ranks</a><a class="active" href="store.html">Store</a><a href="leaderboards.html">Leaderboards</a><a href="gallery.html">Gallery</a><a href="staff.html">Staff</a>
+      <a class="account-link" href="account.html">Account</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="page-hero store-hero">
+      <div class="container reveal">
+        <p class="eyebrow">The Realm Market</p>
+        <h1>Realm Store</h1>
+        <p class="lead">Choose a collection to browse. Every purchase helps support the continued development of The Lost Realm.</p>
+      </div>
+    </section>
+
+    <section class="section store-market-section">
+      <div class="container">
+        <div class="section-head store-market-heading reveal">
+          <div>
+            <p class="eyebrow">Browse the market</p>
+            <h2>Choose a category.</h2>
+          </div>
+          <p class="muted store-market-copy">Explore supporter ranks now, with crates, pets, and gift cards joining the market as they are ready.</p>
+        </div>
+
+        <div class="store-category-grid reveal" role="tablist" aria-label="Store categories">
+          <button class="store-category active" type="button" role="tab" aria-selected="true" aria-controls="store-panel-ranks" id="store-tab-ranks" data-store-category="ranks">
+            <span class="store-category-art store-category-art-ranks" aria-hidden="true">
+              <svg viewBox="0 0 96 96" focusable="false">
+                <path d="M48 10 72 20v24c0 19-9 31-24 42C33 75 24 63 24 44V20Z"/>
+                <path d="m33 39 10 9 20-21"/>
+              </svg>
+            </span>
+            <span class="store-category-label"><strong>Ranks</strong><small>Supporter status &amp; perks</small></span>
+            <span class="store-category-arrow" aria-hidden="true">→</span>
+          </button>
+
+          <button class="store-category" type="button" role="tab" aria-selected="false" aria-controls="store-panel-crates" id="store-tab-crates" data-store-category="crates">
+            <span class="store-category-art store-category-art-crates" aria-hidden="true">
+              <svg viewBox="0 0 96 96" focusable="false">
+                <path d="M18 34 48 18l30 16v34L48 84 18 68Z"/>
+                <path d="m18 34 30 17 30-17M48 51v33M31 27l31 17"/>
+              </svg>
+            </span>
+            <span class="store-category-label"><strong>Crates</strong><small>Rewards from the realm</small></span>
+            <span class="store-category-arrow" aria-hidden="true">→</span>
+          </button>
+
+          <button class="store-category" type="button" role="tab" aria-selected="false" aria-controls="store-panel-pets" id="store-tab-pets" data-store-category="pets">
+            <span class="store-category-art store-category-art-pets" aria-hidden="true">
+              <svg viewBox="0 0 96 96" focusable="false">
+                <path d="M29 48c-9-1-14-7-13-14 1-6 6-10 12-8 6 2 9 8 7 15M67 48c9-1 14-7 13-14-1-6-6-10-12-8-6 2-9 8-7 15"/>
+                <path d="M48 31c-8 0-14 8-14 18 0 5 2 9 5 12-10 3-16 10-16 18h50c0-8-6-15-16-18 3-3 5-7 5-12 0-10-6-18-14-18Z"/>
+              </svg>
+            </span>
+            <span class="store-category-label"><strong>Pets</strong><small>Companions for your journey</small></span>
+            <span class="store-category-arrow" aria-hidden="true">→</span>
+          </button>
+
+          <button class="store-category" type="button" role="tab" aria-selected="false" aria-controls="store-panel-gift-cards" id="store-tab-gift-cards" data-store-category="gift-cards">
+            <span class="store-category-art store-category-art-gifts" aria-hidden="true">
+              <svg viewBox="0 0 96 96" focusable="false">
+                <rect x="16" y="34" width="64" height="46" rx="4"/>
+                <path d="M12 34h72v16H12zM48 34v46"/>
+                <path d="M48 34c-12 0-20-4-20-10 0-5 4-8 9-8 7 0 11 7 11 18Zm0 0c12 0 20-4 20-10 0-5-4-8-9-8-7 0-11 7-11 18Z"/>
+              </svg>
+            </span>
+            <span class="store-category-label"><strong>Gift Cards</strong><small>Give something from the realm</small></span>
+            <span class="store-category-arrow" aria-hidden="true">→</span>
+          </button>
+        </div>
+
+        <div class="store-category-panels">
+          <section class="store-category-panel active" id="store-panel-ranks" role="tabpanel" aria-labelledby="store-tab-ranks" data-store-panel="ranks">
+            <div class="store-panel-head reveal">
+              <div>
+                <p class="eyebrow">Supporter Ranks</p>
+                <h2>Stand with the realm.</h2>
+              </div>
+              <p class="muted">Permanent supporter ranks with recognition, cosmetics, and quality-of-life benefits.</p>
+            </div>
+
+            <div class="store-grid">
+              <article class="card store-card reveal">
+                <p class="eyebrow">Support Rank</p>
+                <h3>VIP</h3>
+                <p class="price">$3.99 <small>USD</small></p>
+                <ul><li>Permanent rank</li><li>Profile badge</li><li>Quality-of-life perks</li></ul>
+                <button class="button" data-preview-action="Purchases are handled through the official Lost Realm store.">View Rank</button>
+              </article>
+
+              <article class="card store-card featured reveal">
+                <p class="eyebrow">Support Rank</p>
+                <h3>VIP+</h3>
+                <p class="price">$5.99 <small>USD</small></p>
+                <ul><li>Everything in VIP</li><li>Expanded conveniences</li><li>Additional cosmetics</li></ul>
+                <button class="button" data-preview-action="Purchases are handled through the official Lost Realm store.">View Rank</button>
+              </article>
+
+              <article class="card store-card reveal">
+                <p class="eyebrow">Support Rank</p>
+                <h3>VIP++</h3>
+                <p class="price">$8.99 <small>USD</small></p>
+                <ul><li>Everything in VIP+</li><li>Premium profile frame</li><li>More cosmetic choices</li></ul>
+                <button class="button" data-preview-action="Purchases are handled through the official Lost Realm store.">View Rank</button>
+              </article>
+
+              <article class="card store-card reveal">
+                <p class="eyebrow">Top Support Rank</p>
+                <h3>Supporter</h3>
+                <p class="price">$30.99 <small>USD</small></p>
+                <ul><li>All supporter benefits</li><li>Exclusive title</li><li>Highest recognition</li></ul>
+                <button class="button" data-preview-action="Purchases are handled through the official Lost Realm store.">View Rank</button>
+              </article>
+            </div>
+          </section>
+
+          <section class="store-category-panel" id="store-panel-crates" role="tabpanel" aria-labelledby="store-tab-crates" data-store-panel="crates" hidden>
+            <div class="store-coming-soon card reveal">
+              <span class="store-coming-mark" aria-hidden="true">✦</span>
+              <p class="eyebrow">Crates</p>
+              <h2>Rewards are being prepared.</h2>
+              <p>Crates will appear here once their rewards and purchase options are finalised. Nothing is being sold from this category yet.</p>
+              <span class="store-status-pill">Coming soon</span>
+            </div>
+          </section>
+
+          <section class="store-category-panel" id="store-panel-pets" role="tabpanel" aria-labelledby="store-tab-pets" data-store-panel="pets" hidden>
+            <div class="store-coming-soon card reveal">
+              <span class="store-coming-mark" aria-hidden="true">✦</span>
+              <p class="eyebrow">Pets</p>
+              <h2>Companions are on the way.</h2>
+              <p>Future server-side pets will live here, with their exact appearance and benefits shown before they become available.</p>
+              <span class="store-status-pill">Coming soon</span>
+            </div>
+          </section>
+
+          <section class="store-category-panel" id="store-panel-gift-cards" role="tabpanel" aria-labelledby="store-tab-gift-cards" data-store-panel="gift-cards" hidden>
+            <div class="store-coming-soon card reveal">
+              <span class="store-coming-mark" aria-hidden="true">✦</span>
+              <p class="eyebrow">Gift Cards</p>
+              <h2>Give the realm to someone else.</h2>
+              <p>Gift card options will appear here if they are added to the store. No gift cards are available for purchase yet.</p>
+              <span class="store-status-pill">Coming soon</span>
+            </div>
+          </section>
+        </div>
+
+        <aside class="store-payment-note reveal" aria-label="Payment information">
+          <div class="store-payment-icon" aria-hidden="true">
+            <svg viewBox="0 0 48 48" focusable="false"><path d="M24 5 39 11v11c0 10-5 17-15 22C14 39 9 32 9 22V11Z"/><path d="m17 24 5 5 10-11"/></svg>
+          </div>
+          <div>
+            <p class="eyebrow">Secure checkout</p>
+            <h3>Transactions are handled through Tebex.</h3>
+            <p>When checkout is enabled, payment processing will be completed securely through Tebex. The Lost Realm website does not collect or store your payment card details.</p>
+          </div>
+        </aside>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div>
+      <img src="assets/img/crest.svg" alt="">
+      <div>
+        <strong>The Lost Realm</strong>
+        <p>A kingdom lost to time. A story waiting for players.</p>
+      </div>
+    </div>
+    <nav aria-label="Footer">
+      <a href="index.html">Home</a>
+      <a href="news.html">News</a>
+      <a href="staff.html">Staff</a>
+      <a href="account.html">Account</a>
+    </nav>
+    <p class="copyright">© <span id="year"></span> The Lost Realm. Not affiliated with Mojang Studios.</p>
+  </footer>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="assets/js/config.js"></script>
+  <script src="assets/js/app.js"></script>
+  <script src="assets/js/store.js"></script>
+</body>
+</html>
