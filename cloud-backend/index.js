@@ -59,12 +59,16 @@ async function routeRequest(request, env) {
   const path = url.pathname.replace(/\/+$/, "") || "/";
   const method = request.method.toUpperCase();
 
-  if (method === "GET" && path === "/") return json({ name: "The Lost Realm API", version: "3.3.0", status: "ready" });
-  if (method === "GET" && path === "/health") return json({ status: "healthy", version: "3.3.1-minecraft-unlink-cors" });
+  if (method === "GET" && path === "/") return json({ name: "The Lost Realm API", version: "3.5.0", status: "ready" });
+  if (method === "GET" && path === "/health") return json({ status: "healthy", version: "3.5.0-google-discord-oauth" });
 
   if (method === "POST" && path === "/api/auth/request-code") return requestCode(request, env);
   if (method === "POST" && path === "/api/auth/verify-code") return verifyCode(request, env);
   if (method === "POST" && path === "/api/auth/logout") return logout(request, env);
+  if (method === "GET" && path === "/api/auth/oauth/google/start") return oauthStart(request, env, "google");
+  if (method === "GET" && path === "/api/auth/oauth/google/callback") return oauthCallback(request, env, "google");
+  if (method === "GET" && path === "/api/auth/oauth/discord/start") return oauthStart(request, env, "discord");
+  if (method === "GET" && path === "/api/auth/oauth/discord/callback") return oauthCallback(request, env, "discord");
   if (method === "GET" && path === "/api/me") return me(request, env);
   if (method === "DELETE" && path === "/api/account") return deleteAccount(request, env);
   if (method === "POST" && path === "/api/account/request-data") return requestData(request, env);
@@ -359,6 +363,247 @@ function rowToStaff(row, requestUrl) {
   };
 }
 
+async function createSession(env, userId, now = nowTs()) {
+  const rawToken = randomToken();
+  const tokenHash = await digest(env, rawToken, "session");
+  const sessionDays = intEnv(env, "SESSION_DAYS", 30, 1);
+  await env.DB.prepare(`INSERT INTO sessions(user_id, token_hash, created_at, expires_at, last_used_at) VALUES (?1, ?2, ?3, ?4, ?5)`)
+    .bind(userId, tokenHash, now, now + sessionDays * 86400, now).run();
+  return { token: rawToken, expires_in_days: sessionDays };
+}
+
+function oauthProviderLabel(provider) {
+  return provider === "discord" ? "Discord" : "Google";
+}
+
+function oauthConfig(env, provider) {
+  const prefix = provider === "discord" ? "DISCORD" : "GOOGLE";
+  const clientId = String(env[`${prefix}_CLIENT_ID`] || "").trim();
+  const clientSecret = String(env[`${prefix}_CLIENT_SECRET`] || "").trim();
+  if (!clientId || !clientSecret) throw new ApiError(503, `${oauthProviderLabel(provider)} sign-in is not configured yet.`);
+  return { clientId, clientSecret };
+}
+
+function oauthBaseUrl(request, env) {
+  const configured = String(env.OAUTH_BASE_URL || "").trim().replace(/\/$/, "");
+  if (configured) {
+    const parsed = new URL(configured);
+    if (parsed.protocol !== "https:") throw new ApiError(500, "OAUTH_BASE_URL must use HTTPS.");
+    return parsed.origin;
+  }
+  return new URL(request.url).origin;
+}
+
+function defaultAccountUrl(env) {
+  const configured = String(env.PUBLIC_SITE_URL || "https://thelostrealm.org").trim();
+  const parsed = new URL(configured);
+  if (parsed.protocol !== "https:") throw new ApiError(500, "PUBLIC_SITE_URL must use HTTPS.");
+  if (parsed.pathname === "/" || !parsed.pathname) parsed.pathname = "/account.html";
+  parsed.search = "";
+  parsed.hash = "";
+  return parsed.toString();
+}
+
+function validateOAuthReturnUrl(value, env) {
+  const candidate = new URL(String(value || defaultAccountUrl(env)));
+  if (candidate.protocol !== "https:" || !isAllowedOrigin(candidate.origin, env)) {
+    throw new ApiError(400, "That return address is not allowed.");
+  }
+  const path = candidate.pathname.replace(/\/+$/, "") || "/";
+  if (!(path === "/account" || path === "/account.html" || path === "/")) {
+    throw new ApiError(400, "OAuth sign-in can only return to the account page.");
+  }
+  candidate.search = "";
+  candidate.hash = "";
+  return candidate.toString();
+}
+
+function oauthCallbackUrl(request, env, provider) {
+  return `${oauthBaseUrl(request, env)}/api/auth/oauth/${provider}/callback`;
+}
+
+function oauthRedirect(returnUrl, params) {
+  const target = new URL(returnUrl);
+  target.hash = new URLSearchParams(params).toString();
+  return Response.redirect(target.toString(), 302);
+}
+
+async function oauthStart(request, env, provider) {
+  const { clientId } = oauthConfig(env, provider);
+  const url = new URL(request.url);
+  const returnUrl = validateOAuthReturnUrl(url.searchParams.get("return_to") || defaultAccountUrl(env), env);
+  const now = nowTs();
+  await cleanupAuthRows(env);
+  await env.DB.prepare("DELETE FROM oauth_states WHERE expires_at <= ?1 OR (used_at IS NOT NULL AND used_at < ?2)")
+    .bind(now - 86400, now - 86400).run();
+
+  const ip = clientIp(request);
+  const recent = await env.DB.prepare("SELECT COUNT(*) AS total FROM oauth_states WHERE request_ip = ?1 AND created_at > ?2")
+    .bind(ip, now - 3600).first();
+  if (Number(recent?.total || 0) >= 30) throw new ApiError(429, "Too many sign-in attempts. Try again later.");
+
+  const state = randomToken();
+  const stateHash = await digest(env, state, "oauth-state");
+  await env.DB.prepare(`INSERT INTO oauth_states(state_hash, provider, return_url, created_at, expires_at, request_ip) VALUES (?1, ?2, ?3, ?4, ?5, ?6)`)
+    .bind(stateHash, provider, returnUrl, now, now + 600, ip).run();
+
+  const redirectUri = oauthCallbackUrl(request, env, provider);
+  let authorize;
+  if (provider === "google") {
+    authorize = new URL("https://accounts.google.com/o/oauth2/v2/auth");
+    authorize.search = new URLSearchParams({
+      client_id: clientId,
+      redirect_uri: redirectUri,
+      response_type: "code",
+      scope: "openid email profile",
+      state,
+      prompt: "select_account",
+      include_granted_scopes: "true",
+    }).toString();
+  } else {
+    authorize = new URL("https://discord.com/oauth2/authorize");
+    authorize.search = new URLSearchParams({
+      client_id: clientId,
+      redirect_uri: redirectUri,
+      response_type: "code",
+      scope: "identify email",
+      state,
+    }).toString();
+  }
+  return Response.redirect(authorize.toString(), 302);
+}
+
+async function exchangeOAuthCode(request, env, provider, code) {
+  const { clientId, clientSecret } = oauthConfig(env, provider);
+  const redirectUri = oauthCallbackUrl(request, env, provider);
+  const tokenUrl = provider === "google"
+    ? "https://oauth2.googleapis.com/token"
+    : "https://discord.com/api/v10/oauth2/token";
+
+  const body = new URLSearchParams({
+    client_id: clientId,
+    client_secret: clientSecret,
+    code,
+    grant_type: "authorization_code",
+    redirect_uri: redirectUri,
+  });
+
+  const tokenResponse = await fetch(tokenUrl, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded", "Accept": "application/json" },
+    body,
+  });
+  let tokenData = null;
+  try { tokenData = await tokenResponse.json(); } catch { /* handled below */ }
+  if (!tokenResponse.ok || !tokenData?.access_token) {
+    console.error(`${oauthProviderLabel(provider)} token exchange failed`, tokenData?.error || tokenResponse.status);
+    throw new ApiError(502, `${oauthProviderLabel(provider)} sign-in could not be completed.`);
+  }
+  return String(tokenData.access_token);
+}
+
+async function fetchOAuthProfile(provider, accessToken) {
+  const profileUrl = provider === "google"
+    ? "https://openidconnect.googleapis.com/v1/userinfo"
+    : "https://discord.com/api/v10/users/@me";
+  const response = await fetch(profileUrl, {
+    headers: { "Authorization": `Bearer ${accessToken}`, "Accept": "application/json" },
+  });
+  let profile = null;
+  try { profile = await response.json(); } catch { /* handled below */ }
+  if (!response.ok || !profile) throw new ApiError(502, `${oauthProviderLabel(provider)} profile verification failed.`);
+
+  const providerUserId = String(provider === "google" ? profile.sub : profile.id || "").trim();
+  const email = normalizeEmail(profile.email);
+  const verified = provider === "google" ? profile.email_verified === true : profile.verified === true;
+  if (!providerUserId || !verified) throw new ApiError(403, `${oauthProviderLabel(provider)} requires a verified email address.`);
+
+  // We intentionally do not retain provider display names. They are not
+  // needed for authentication and may contain a person's real name.
+  return { providerUserId, email, username: null };
+}
+
+async function oauthUser(env, provider, profile, now) {
+  let identity = await env.DB.prepare("SELECT * FROM oauth_identities WHERE provider = ?1 AND provider_user_id = ?2")
+    .bind(provider, profile.providerUserId).first();
+  let user = null;
+
+  if (identity) {
+    user = await env.DB.prepare("SELECT * FROM users WHERE id = ?1").bind(identity.user_id).first();
+    if (!user) throw new ApiError(409, "This sign-in connection is no longer attached to an account.");
+    await env.DB.prepare("UPDATE oauth_identities SET provider_email = ?1, provider_username = ?2, last_login = ?3 WHERE id = ?4")
+      .bind(profile.email, profile.username, now, identity.id).run();
+  } else {
+    user = await env.DB.prepare("SELECT * FROM users WHERE email = ?1").bind(profile.email).first();
+    let userId;
+    if (user) {
+      const existingProvider = await env.DB.prepare("SELECT provider_user_id FROM oauth_identities WHERE user_id = ?1 AND provider = ?2")
+        .bind(user.id, provider).first();
+      if (existingProvider && String(existingProvider.provider_user_id) !== profile.providerUserId) {
+        throw new ApiError(409, `This Lost Realm account is already connected to a different ${oauthProviderLabel(provider)} account.`);
+      }
+      userId = Number(user.id);
+    } else {
+      const isAdmin = adminEmails(env).has(profile.email) ? 1 : 0;
+      const inserted = await env.DB.prepare("INSERT INTO users(email, created_at, last_login, is_admin) VALUES (?1, ?2, ?3, ?4)")
+        .bind(profile.email, now, now, isAdmin).run();
+      userId = Number(inserted.meta.last_row_id);
+      user = await env.DB.prepare("SELECT * FROM users WHERE id = ?1").bind(userId).first();
+    }
+
+    await env.DB.prepare(`INSERT INTO oauth_identities(user_id, provider, provider_user_id, provider_email, provider_username, created_at, last_login)
+      VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)`)
+      .bind(userId, provider, profile.providerUserId, profile.email, profile.username, now, now).run();
+  }
+
+  const isAdmin = Number(user.is_admin) || adminEmails(env).has(user.email) ? 1 : 0;
+  await env.DB.prepare("UPDATE users SET last_login = ?1, is_admin = ?2 WHERE id = ?3")
+    .bind(now, isAdmin, user.id).run();
+  return Number(user.id);
+}
+
+async function oauthCallback(request, env, provider) {
+  const url = new URL(request.url);
+  let returnUrl = defaultAccountUrl(env);
+  try {
+    const state = String(url.searchParams.get("state") || "");
+    if (state.length < 20) throw new ApiError(400, "The sign-in request expired or is invalid.");
+    const stateHash = await digest(env, state, "oauth-state");
+    const now = nowTs();
+    const stateRow = await env.DB.prepare("SELECT * FROM oauth_states WHERE state_hash = ?1 AND provider = ?2 AND used_at IS NULL")
+      .bind(stateHash, provider).first();
+    if (!stateRow || Number(stateRow.expires_at) <= now) throw new ApiError(400, "The sign-in request expired. Please try again.");
+    returnUrl = validateOAuthReturnUrl(stateRow.return_url, env);
+
+    if (url.searchParams.get("error")) {
+      await env.DB.prepare("UPDATE oauth_states SET used_at = ?1 WHERE id = ?2 AND used_at IS NULL").bind(now, stateRow.id).run();
+      throw new ApiError(400, "Sign-in was cancelled.");
+    }
+
+    const code = String(url.searchParams.get("code") || "");
+    if (!code) throw new ApiError(400, "The sign-in provider did not return an authorization code.");
+
+    const accessToken = await exchangeOAuthCode(request, env, provider, code);
+    const profile = await fetchOAuthProfile(provider, accessToken);
+    const used = await env.DB.prepare("UPDATE oauth_states SET used_at = ?1 WHERE id = ?2 AND used_at IS NULL").bind(now, stateRow.id).run();
+    if (Number(used.meta?.changes || 0) !== 1) throw new ApiError(400, "That sign-in request has already been used.");
+
+    const userId = await oauthUser(env, provider, profile, now);
+    const session = await createSession(env, userId, now);
+    return oauthRedirect(returnUrl, { oauth_token: session.token, oauth_provider: provider });
+  } catch (error) {
+    console.error(`${oauthProviderLabel(provider)} OAuth callback`, error);
+    const message = error instanceof ApiError ? error.message : `${oauthProviderLabel(provider)} sign-in failed. Please try again.`;
+    return oauthRedirect(returnUrl, { oauth_error: message, oauth_provider: provider });
+  }
+}
+
+async function authMethodsForUser(env, userId) {
+  const rows = await env.DB.prepare("SELECT provider FROM oauth_identities WHERE user_id = ?1 ORDER BY provider")
+    .bind(userId).all();
+  return ["email", ...(rows.results || []).map((row) => String(row.provider)).filter((provider) => provider === "google" || provider === "discord")];
+}
+
 async function requestCode(request, env) {
   const payload = await readJson(request);
   const email = normalizeEmail(payload.email);
@@ -416,12 +661,8 @@ async function verifyCode(request, env) {
     userId = Number(inserted.meta.last_row_id);
   }
 
-  const rawToken = randomToken();
-  const tokenHash = await digest(env, rawToken, "session");
-  const sessionDays = intEnv(env, "SESSION_DAYS", 30, 1);
-  await env.DB.prepare(`INSERT INTO sessions(user_id, token_hash, created_at, expires_at, last_used_at) VALUES (?1, ?2, ?3, ?4, ?5)`)
-    .bind(userId, tokenHash, now, now + sessionDays * 86400, now).run();
-  return json({ message: "Signed in successfully.", token: rawToken, expires_in_days: sessionDays });
+  const session = await createSession(env, userId, now);
+  return json({ message: "Signed in successfully.", ...session });
 }
 
 async function logout(request, env) {
@@ -434,7 +675,10 @@ async function logout(request, env) {
 }
 
 async function me(request, env) {
-  return json(rowToUser(await currentUser(request, env)));
+  const user = await currentUser(request, env);
+  const data = rowToUser(user);
+  data.sign_in_methods = await authMethodsForUser(env, user.id);
+  return json(data);
 }
 
 async function deleteAccount(request, env) {
@@ -446,6 +690,7 @@ async function deleteAccount(request, env) {
 async function requestData(request, env) {
   const user = await currentUser(request, env);
   const data = rowToUser(user);
+  data.sign_in_methods = await authMethodsForUser(env, user.id);
 
   // Only include the admin flag in exported account data when the account
   // is actually an administrator. Normal players never see an is_admin field.
@@ -894,6 +1139,9 @@ async function sendDataExport(env, email, data) {
   const playtimeDisplay = playtimeHours > 0
     ? `${playtimeHours}h ${remainingMinutes}m`
     : `${remainingMinutes}m`;
+  const signInMethods = Array.isArray(data.sign_in_methods) && data.sign_in_methods.length
+    ? data.sign_in_methods.map((method) => method === "google" ? "Google" : method === "discord" ? "Discord" : "Email code").join(", ")
+    : "Email code";
 
   const plainRows = [
     ["id", value(data.id)],
@@ -908,6 +1156,7 @@ async function sendDataExport(env, email, data) {
     ["friends", value(data.friends, "0")],
     ["playtime_rank", value(data.playtime_rank)],
     ["display_title", value(data.display_title)],
+    ["sign_in_methods", signInMethods],
     ["exported_at", value(data.exported_at)],
   ];
   if (data.is_admin === true) plainRows.push(["is_admin", "true"]);
@@ -921,6 +1170,7 @@ async function sendDataExport(env, email, data) {
     `Account ID: ${value(data.id)}`,
     `Created: ${value(data.created_at)}`,
     `Last sign-in: ${value(data.last_login)}`,
+    `Sign-in methods: ${signInMethods}`,
     "",
     "MINECRAFT PROFILE",
     "────────────────────────",
@@ -1022,6 +1272,7 @@ async function sendDataExport(env, email, data) {
                         ${row("friends", data.friends, false)}
                         ${row("playtime_rank", data.playtime_rank)}
                         ${row("display_title", data.display_title)}
+                        ${row("sign_in_methods", signInMethods)}
                         ${adminRow}
                         ${row("exported_at", data.exported_at)}
                       </table>
