@@ -1,20 +1,30 @@
-CREATE TABLE IF NOT EXISTS email_change_requests (
+CREATE TABLE IF NOT EXISTS oauth_identities (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER NOT NULL,
-    new_email TEXT NOT NULL COLLATE NOCASE,
-    code_hash TEXT NOT NULL,
-    confirmation_token_hash TEXT,
+    provider TEXT NOT NULL,
+    provider_user_id TEXT NOT NULL,
+    provider_email TEXT,
+    provider_username TEXT,
     created_at INTEGER NOT NULL,
-    expires_at INTEGER NOT NULL,
-    verified_at INTEGER,
-    confirmed_at INTEGER,
-    attempts INTEGER NOT NULL DEFAULT 0,
-    request_ip TEXT,
-    FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+    last_login INTEGER NOT NULL,
+    FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE,
+    UNIQUE(provider, provider_user_id),
+    UNIQUE(user_id, provider)
 );
 
-CREATE INDEX IF NOT EXISTS idx_email_change_user
-ON email_change_requests(user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_oauth_identities_user
+ON oauth_identities(user_id);
 
-CREATE INDEX IF NOT EXISTS idx_email_change_target
-ON email_change_requests(new_email, created_at DESC);
+CREATE TABLE IF NOT EXISTS oauth_states (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    state_hash TEXT NOT NULL UNIQUE,
+    provider TEXT NOT NULL,
+    return_url TEXT NOT NULL,
+    created_at INTEGER NOT NULL,
+    expires_at INTEGER NOT NULL,
+    used_at INTEGER,
+    request_ip TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_oauth_states_expiry
+ON oauth_states(expires_at, used_at);
