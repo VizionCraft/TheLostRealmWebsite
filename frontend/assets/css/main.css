@@ -804,3 +804,18 @@ body.portal-modal-open { overflow: hidden; }
   .store-category { min-height: 185px; }
   .store-category-art { height: 115px; }
 }
+
+
+/* OAuth sign-in — The Lost Realm */
+.oauth-signin { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 22px; }
+.oauth-button { min-height: 52px; border: 1px solid var(--line); border-radius: 14px; padding: 0 16px; display: inline-flex; align-items: center; justify-content: center; gap: 11px; color: var(--text); background: rgba(255,255,255,.03); font-weight: 900; transition: transform .18s ease, border-color .18s ease, background .18s ease, box-shadow .18s ease; }
+.oauth-button:hover { transform: translateY(-2px); border-color: rgba(226,184,105,.55); background: rgba(226,184,105,.075); box-shadow: 0 14px 34px rgba(0,0,0,.22); }
+.oauth-button:focus-visible { outline: 2px solid var(--gold-light); outline-offset: 3px; }
+.oauth-mark { width: 28px; height: 28px; display: inline-grid; place-items: center; border-radius: 50%; background: #f5f1e9; color: #17120e; font-family: Arial,Helvetica,sans-serif; font-weight: 900; line-height: 1; }
+.oauth-discord { background: rgba(88,101,242,.08); border-color: rgba(124,134,255,.3); }
+.oauth-discord:hover { background: rgba(88,101,242,.14); border-color: rgba(149,157,255,.55); }
+.oauth-mark-discord { background: #5865f2; color: #fff; }
+.auth-divider { display: flex; align-items: center; gap: 12px; margin: 22px 0 2px; color: var(--muted); font-size: .72rem; font-weight: 800; letter-spacing: .11em; text-transform: uppercase; }
+.auth-divider::before, .auth-divider::after { content: ""; height: 1px; flex: 1; background: var(--line); }
+.auth-divider span { white-space: nowrap; }
+@media (max-width: 620px) { .oauth-signin { grid-template-columns: 1fr; } }
