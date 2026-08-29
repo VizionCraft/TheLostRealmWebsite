@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0d0a09">
+  <meta name="description" content="The Lost Realm AI Support administration.">
+  <title>AI Support | The Lost Realm</title>
+  <link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="assets/css/main.css">
+  <link rel="stylesheet" href="assets/css/support-admin.css">
+</head>
+<body>
+  <canvas id="ember-canvas" aria-hidden="true"></canvas>
+  <div class="site-noise" aria-hidden="true"></div>
+  <header class="site-header" id="site-header">
+    <a class="brand" href="index.html" aria-label="The Lost Realm home">
+      <img src="assets/img/crest.svg" alt=""><span><strong>The Lost Realm</strong><small>Medieval Fantasy RPG</small></span>
+    </a>
+    <button class="nav-toggle" id="nav-toggle" aria-expanded="false" aria-controls="main-nav"><span></span><span></span><span></span><span class="sr-only">Toggle navigation</span></button>
+    <nav class="main-nav" id="main-nav">
+      <a href="index.html">Home</a><a href="news.html">News</a><a href="wiki.html">Wiki</a><a href="ranks.html">Ranks</a><a href="store.html">Store</a><a href="leaderboards.html">Leaderboards</a><a href="gallery.html">Gallery</a><a href="staff.html">Staff</a><a class="account-link" href="account.html">Account</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="page-hero support-admin-hero"><div class="container reveal">
+      <p class="eyebrow">Administrator only</p><h1>AI Support Desk</h1>
+      <p class="lead">Edit exactly what the AI is allowed to know and handle the small number of conversations that require a human.</p>
+    </div></section>
+
+    <section class="section"><div class="container">
+      <div id="support-guard" class="card support-guard"><h3>Checking administrator access...</h3><p class="muted">The support database is never exposed directly to visitors.</p></div>
+
+      <div id="support-app" class="hidden">
+        <div class="support-tabs" role="tablist" aria-label="Support administration">
+          <button type="button" class="button support-tab active" data-tab="knowledge">Knowledge Base</button>
+          <button type="button" class="button-ghost support-tab" data-tab="queue">Human Queue <span id="queue-count" class="support-count">0</span></button>
+          <button type="button" class="button-ghost support-tab" data-tab="settings">AI Settings</button>
+        </div>
+
+        <section class="support-panel" id="panel-knowledge">
+          <div class="support-panel-heading"><div><p class="eyebrow">Approved knowledge only</p><h2>What the AI knows</h2><p class="muted">If information is not here, the AI is instructed not to invent it.</p></div><button class="button" id="new-kb" type="button">+ Add Knowledge</button></div>
+          <div class="support-grid"><div class="card support-list-card"><div id="kb-list" class="support-list"></div></div>
+          <form id="kb-form" class="card support-editor hidden">
+            <input type="hidden" id="kb-id">
+            <div class="field"><label for="kb-category">Category</label><input id="kb-category" maxlength="80" placeholder="Accounts, Pets, Store, Rules..."></div>
+            <div class="field"><label for="kb-title">Title</label><input id="kb-title" maxlength="160" required placeholder="How Minecraft linking works"></div>
+            <div class="field"><label for="kb-tags">Search tags</label><input id="kb-tags" maxlength="500" placeholder="link account code minecraft website"></div>
+            <div class="field"><label for="kb-content">Approved knowledge</label><textarea id="kb-content" rows="12" maxlength="8000" required placeholder="Write the exact facts the AI is allowed to use..."></textarea></div>
+            <label class="support-check"><input id="kb-active" type="checkbox" checked> Active — AI may use this entry</label>
+            <div class="inline-actions"><button class="button" type="submit">Save Knowledge</button><button class="button-ghost" type="button" id="cancel-kb">Cancel</button><button class="text-button danger" type="button" id="delete-kb">Delete</button></div>
+            <p class="form-result" id="kb-result" role="status"></p>
+          </form></div>
+        </section>
+
+        <section class="support-panel hidden" id="panel-queue">
+          <div class="support-panel-heading"><div><p class="eyebrow">AI paused</p><h2>Human support queue</h2><p class="muted">The AI cannot answer these threads while they are assigned to a human.</p></div><button class="button-ghost" id="refresh-queue" type="button">Refresh</button></div>
+          <div class="support-grid"><div class="card support-list-card"><div id="ticket-list" class="support-list"></div></div>
+          <article class="card support-ticket hidden" id="ticket-view"><div id="ticket-meta"></div><div id="ticket-messages" class="ticket-messages"></div>
+            <form id="human-reply-form"><div class="field"><label for="human-reply">Human reply</label><textarea id="human-reply" rows="7" maxlength="12000" placeholder="Write your reply as The Lost Realm Support..."></textarea></div><div class="inline-actions"><button class="button" type="submit">Send Human Reply</button><button class="button-ghost" type="button" id="return-ai">Return Thread to AI</button><button class="text-button danger" type="button" id="close-ticket">Close Ticket</button></div><p class="form-result" id="ticket-result" role="status"></p></form>
+          </article></div>
+        </section>
+
+        <section class="support-panel hidden" id="panel-settings">
+          <div class="support-panel-heading"><div><p class="eyebrow">Editable behaviour text</p><h2>Support settings</h2><p class="muted">These settings change the disclosure and human-handoff wording without changing code.</p></div></div>
+          <form id="settings-form" class="card support-settings">
+            <div class="field"><label for="set-ai-name">AI display name</label><input id="set-ai-name" maxlength="200"></div>
+            <div class="field"><label for="set-human-phrase">Exact human request phrase</label><input id="set-human-phrase" maxlength="200"></div>
+            <div class="field"><label for="set-signature">Support signature</label><textarea id="set-signature" rows="2" maxlength="1000"></textarea></div>
+            <div class="field"><label for="set-footer">AI-written disclosure footer</label><textarea id="set-footer" rows="7" maxlength="6000"></textarea></div>
+            <div class="field"><label for="set-human-message">Message when AI needs a human</label><textarea id="set-human-message" rows="7" maxlength="6000"></textarea></div>
+            <button class="button" type="submit">Save Settings</button><p class="form-result" id="settings-result" role="status"></p>
+          </form>
+        </section>
+      </div>
+    </div></section>
+  </main>
+
+  <footer class="site-footer"><div class="container footer-inner"><div><strong>The Lost Realm</strong><p>A world forgotten. A journey remembered.</p></div><div><a href="account.html">Account</a><a href="store.html">Store</a></div></div></footer>
+  <script src="assets/js/config.js"></script><script src="assets/js/app.js"></script><script src="assets/js/support-admin.js"></script>
+</body>
+</html>
