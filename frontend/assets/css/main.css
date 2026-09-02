@@ -811,11 +811,32 @@ body.portal-modal-open { overflow: hidden; }
 .oauth-button { min-height: 52px; border: 1px solid var(--line); border-radius: 14px; padding: 0 16px; display: inline-flex; align-items: center; justify-content: center; gap: 11px; color: var(--text); background: rgba(255,255,255,.03); font-weight: 900; transition: transform .18s ease, border-color .18s ease, background .18s ease, box-shadow .18s ease; }
 .oauth-button:hover { transform: translateY(-2px); border-color: rgba(226,184,105,.55); background: rgba(226,184,105,.075); box-shadow: 0 14px 34px rgba(0,0,0,.22); }
 .oauth-button:focus-visible { outline: 2px solid var(--gold-light); outline-offset: 3px; }
-.oauth-mark { width: 28px; height: 28px; display: inline-grid; place-items: center; border-radius: 50%; background: #f5f1e9; color: #17120e; font-family: Arial,Helvetica,sans-serif; font-weight: 900; line-height: 1; }
+.oauth-icon-wrap { width: 30px; height: 30px; flex: 0 0 30px; display: inline-grid; place-items: center; overflow: hidden; border-radius: 8px; background: #fff; }
+.oauth-icon { width: 100%; height: 100%; object-fit: cover; display: block; }
+.oauth-icon-google { padding: 2px; }
+.oauth-icon-google .oauth-icon { border-radius: 6px; }
+.oauth-icon-discord { background: #5865f2; }
 .oauth-discord { background: rgba(88,101,242,.08); border-color: rgba(124,134,255,.3); }
 .oauth-discord:hover { background: rgba(88,101,242,.14); border-color: rgba(149,157,255,.55); }
-.oauth-mark-discord { background: #5865f2; color: #fff; }
 .auth-divider { display: flex; align-items: center; gap: 12px; margin: 22px 0 2px; color: var(--muted); font-size: .72rem; font-weight: 800; letter-spacing: .11em; text-transform: uppercase; }
 .auth-divider::before, .auth-divider::after { content: ""; height: 1px; flex: 1; background: var(--line); }
 .auth-divider span { white-space: nowrap; }
 @media (max-width: 620px) { .oauth-signin { grid-template-columns: 1fr; } }
+
+
+/* Privacy policy */
+.privacy-page .page-hero { padding-bottom: 54px; }
+.privacy-policy-shell { display: grid; gap: 18px; }
+.privacy-policy-intro { padding: 26px; }
+.privacy-policy-intro p:last-child { margin-bottom: 0; }
+.privacy-policy-section { padding: clamp(22px, 3vw, 32px); }
+.privacy-policy-section h2 { font-size: clamp(1.45rem, 3vw, 2rem); margin-bottom: 14px; color: var(--gold-light); }
+.privacy-policy-section p { margin: 0 0 13px; color: #c8bfb3; }
+.privacy-policy-section p:last-child { margin-bottom: 0; }
+.privacy-policy-section ul { margin: 10px 0 16px; padding-left: 1.25rem; color: #c8bfb3; }
+.privacy-policy-section li { margin: 7px 0; }
+.privacy-policy-section a { color: var(--gold-light); text-decoration: underline; text-decoration-color: rgba(246,221,162,.38); text-underline-offset: 3px; }
+.privacy-policy-section a:hover { text-decoration-color: var(--gold-light); }
+.privacy-policy-important { border-color: rgba(208,112,99,.32); background: linear-gradient(135deg, rgba(96,41,33,.16), rgba(22,19,16,.86)); }
+.privacy-policy-important h2 { color: #f0b7ad; }
+.privacy-updated { display: inline-flex; margin-top: 12px; padding: 7px 11px; border: 1px solid var(--line); border-radius: 999px; color: var(--muted); font-size: .78rem; font-weight: 800; }
