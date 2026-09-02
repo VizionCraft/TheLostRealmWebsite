@@ -33,6 +33,16 @@
     }
   };
 
+  const setupFooterPrivacy = () => {
+    $$(".site-footer nav").forEach((nav) => {
+      if (nav.querySelector('a[href="privacy.html"]')) return;
+      const link = document.createElement("a");
+      link.href = "privacy.html";
+      link.textContent = "Privacy";
+      nav.appendChild(link);
+    });
+  };
+
   const setupNavigation = () => {
     const toggle = $("#nav-toggle");
     const nav = $("#main-nav");
@@ -286,6 +296,7 @@
     if (year) year.textContent = new Date().getFullYear();
 
     setupNavigation();
+    setupFooterPrivacy();
     setupHeader();
     setupReveal();
     setupActions();
