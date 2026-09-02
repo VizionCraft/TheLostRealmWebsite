@@ -35,9 +35,9 @@
 
   const setupFooterPrivacy = () => {
     $$(".site-footer nav").forEach((nav) => {
-      if (nav.querySelector('a[href="privacy.html"]')) return;
+      if (nav.querySelector('a[href="/privacy"]')) return;
       const link = document.createElement("a");
-      link.href = "privacy.html";
+      link.href = "/privacy";
       link.textContent = "Privacy";
       nav.appendChild(link);
     });
